@@ -1,0 +1,7 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {fresh,act,promote,claim,command} from './game.js';
+test('new recruit trains, rests and earns promotion',()=>{let s=fresh();assert.equal(promote(s).state.rank,0);for(let i=0;i<4;i++)s=act(s,'fitness').state;assert.equal(s.fitness,75);assert.equal(s.xp,100);assert.equal(s.week,5);s=promote(s).state;assert.equal(s.rank,1);s=act(s,'combat').state;assert.equal(s.energy,0);assert.ok(act(s,'combat').error);s=act(s,'rest').state;assert.equal(s.energy,45);assert.equal(claim(s,'พลร่ม').state.badges.length,1);});
+test('chain of command rejects peers and superiors',()=>{let s=fresh();assert.ok(command(s,0,'จัดเวรยาม').error);s.rank=2;assert.ok(command(s,2,'จัดเวรยาม').error);assert.ok(command(s,3,'จัดเวรยาม').error);assert.ok(command(s,-1,'จัดเวรยาม').error);const result=command(s,1,'จัดเวรยาม');assert.equal(result.state.xp,10);assert.equal(result.state.leadership,10);assert.equal(s.xp,0);});
+test('missions enforce prerequisites and award completion',()=>{let s=fresh();assert.ok(act(s,'mission').error);s.fitness=30;s.combat=30;s=act(s,'mission').state;assert.equal(s.missions,1);assert.equal(s.xp,60);assert.equal(s.energy,70);});
+test('badges require skill and cannot be awarded twice',()=>{let s=fresh();assert.ok(claim(s,'นักแม่นปืน').error);s.combat=60;s=claim(s,'นักแม่นปืน').state;assert.deepEqual(s.badges,['นักแม่นปืน']);assert.ok(claim(s,'นักแม่นปืน').error);});
